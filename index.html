@@ -1,819 +1,327 @@
 <!DOCTYPE html>
-<html lang="bn" class="dark">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>জিমেইল ভল্ট - Gmail Vault & Password Manager</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Gmail Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                        }
-                    },
-                    animation: {
-                        shake: 'shake 0.4s ease-in-out',
-                    },
-                    keyframes: {
-                        shake: {
-                            '0%, 100%': { transform: 'translateX(0)' },
-                            '20%, 60%': { transform: 'translateX(-8px)' },
-                            '40%, 80%': { transform: 'translateX(8px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome & Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Hind Siliguri', sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .light .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/30 text-white">
-                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+        <header class="flex flex-col sm:flex-row justify-between items-center pb-6 border-b border-slate-800 gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-3 bg-red-500/10 rounded-xl text-red-500">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                        জিমেইল ভল্ট <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">v1.0</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">আপনার নিরাপদ পাসওয়ার্ড ম্যানেজার</p>
+                    <h1 class="text-2xl font-bold">Gmail Vault</h1>
+                    <p class="text-xs text-slate-400">নিরাপদ জিমেইল ও পাসওয়ার্ড সংরক্ষক</p>
                 </div>
             </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openPinModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs flex items-center gap-2 text-slate-300">
+                    <i data-lucide="key" class="w-4 h-4"></i> পিন পরিবর্তন
+                </button>
+                <button onclick="openAddModal()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> নতুন জিমেইল
+                </button>
+            </div>
+        </header>
 
+        <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div class="relative w-full sm:w-80">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+                <input type="text" id="searchInput" oninput="renderVault()" placeholder="জিমেইল খুঁজুন..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 text-slate-200">
+            </div>
             <div class="flex items-center gap-2">
-                <button id="openGithubGuideBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
-                    <i data-lucide="github" class="w-4 h-4 text-indigo-400"></i>
-                    <span class="hidden sm:inline">গিটহাব সেটআপ গাইড</span>
+                <button onclick="exportData()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 flex items-center gap-1">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> ব্যাকআপ
                 </button>
-                <button id="exportImportBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
-                    <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i>
-                    <span class="hidden sm:inline">ব্যাকআপ / রিস্টোর</span>
-                </button>
-                <button id="changePinBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition">
-                    <i data-lucide="key-round" class="w-4 h-4 text-amber-400"></i>
-                    <span class="hidden sm:inline">পিন পরিবর্তন</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
-        
-        <!-- Action & Search Bar -->
-        <div class="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl">
-            <div class="relative w-full sm:w-96">
-                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
-                <input type="text" id="searchInput" placeholder="জিমেইল বা বিবরণ দিয়ে খুঁজুন..." 
-                    class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-100 placeholder-slate-400">
-            </div>
-
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button id="addGmailBtn" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                    নতুন জিমেইল যোগ করুন
-                </button>
+                <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-300 cursor-pointer flex items-center gap-1">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> রিস্টোর
+                    <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
+                </label>
             </div>
         </div>
 
-        <!-- Gmail Accounts Grid -->
-        <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <!-- Dynamic cards will be rendered here -->
-        </div>
+        <div id="vaultList" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"></div>
+    </div>
 
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden text-center py-16 px-4 bg-slate-900/50 border border-slate-800 rounded-2xl">
-            <div class="w-16 h-16 bg-slate-800 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="mail-warning" class="w-8 h-8"></i>
-            </div>
-            <h3 class="text-lg font-medium text-slate-200 mb-1">কোনো জিমেইল অ্যাকাউন্ট পাওয়া যায়নি!</h3>
-            <p class="text-sm text-slate-400 max-w-md mx-auto mb-5">আপনার সংরক্ষিত কোনো জিমেইল অ্যাড্রেস নেই অথবা অনুসন্ধানের সাথে মেলেনি।</p>
-            <button id="emptyAddBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-sm inline-flex items-center gap-2 shadow-lg">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                এখনই প্রথম জিমেইল যোগ করুন
-            </button>
-        </div>
-    </main>
-
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
-
-    <div id="pinModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div id="pinModalBox" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-            <button id="closePinModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="text-center mb-5">
-                <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
-                    <i data-lucide="lock" class="w-6 h-6"></i>
-                </div>
-                <h3 class="text-lg font-bold text-slate-100">সিকিউরিটি পিন দিন</h3>
-                <p class="text-xs text-slate-400 mt-1">পাসওয়ার্ডটি দেখার জন্য আপনার গোপন মাস্টার পিনটি দিন</p>
-            </div>
-
-            <form id="pinForm" onsubmit="return false;" class="space-y-4">
+    <!-- Add/Edit Modal -->
+    <div id="accountModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700">
+            <h3 id="modalTitle" class="text-lg font-bold mb-4">নতুন জিমেইল যোগ করুন</h3>
+            <form onsubmit="saveAccount(event)" class="space-y-4">
+                <input type="hidden" id="editIndex">
                 <div>
-                    <input type="password" id="pinInput" maxlength="8" placeholder="••••" autofocus
-                        class="w-full text-center text-2xl tracking-widest px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <p id="pinError" class="text-xs text-rose-400 mt-1.5 text-center hidden flex items-center justify-center gap-1">
-                        <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> ভুল সিকিউরিটি পিন! আবার চেষ্টা করুন।
-                    </p>
+                    <label class="block text-xs text-slate-400 mb-1">জিমেইল এড্রেস</label>
+                    <input type="email" id="emailInput" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-red-500">
                 </div>
-
-                <div class="flex gap-2">
-                    <button type="button" id="cancelPinBtn" class="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-sm border border-slate-700">ক্যান্সেল</button>
-                    <button type="submit" id="submitPinBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-sm shadow-lg shadow-indigo-600/30">যাচাই করুন</button>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">পাসওয়ার্ড</label>
+                    <input type="password" id="passwordInput" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">নোট (ঐচ্ছিক)</label>
+                    <input type="text" id="noteInput" placeholder="যেমন: পার্সোনাল বা অফিশিয়াল" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-red-500">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('accountModal')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">বাতিল</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 rounded-lg text-sm font-medium">সেভ করুন</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="accountModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <button id="closeAccountModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="flex items-center gap-3 mb-5">
-                <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-                    <i data-lucide="mail-plus" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 id="accountModalTitle" class="text-lg font-bold text-slate-100">নতুন জিমেইল যোগ করুন</h3>
-                    <p class="text-xs text-slate-400">আপনার নিরাপদ জিমেইল ও পাসওয়ার্ড এনক্রিপ্ট হয়ে থাকবে</p>
-                </div>
-            </div>
-
-            <form id="accountForm" onsubmit="return false;" class="space-y-4">
-                <input type="hidden" id="editAccountId">
-                
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">জিমেইল অ্যাড্রেস *</label>
-                    <input type="email" id="gmailAddressInput" required placeholder="yourname@gmail.com" 
-                        class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">জিমেইলের পাসওয়ার্ড *</label>
-                    <div class="relative">
-                        <input type="password" id="gmailPasswordInput" required placeholder="পাসওয়ার্ড লিখুন" 
-                            class="w-full pl-3.5 pr-10 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button type="button" id="toggleModalPass" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200">
-                            <i data-lucide="eye" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">নোট / বিবরণ (ঐচ্ছিক)</label>
-                    <textarea id="gmailNoteInput" rows="2" placeholder="যেমন: ব্যক্তিগত বা অফিশিয়াল জিমেইল..." 
-                        class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                </div>
-
-                <div class="pt-2 flex gap-3">
-                    <button type="button" id="cancelAccountBtn" class="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-sm border border-slate-700">বাতিল</button>
-                    <button type="submit" id="saveAccountBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-sm shadow-lg shadow-indigo-600/30">সংরক্ষণ করুন</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="backupModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <button id="closeBackupModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="flex items-center gap-3 mb-4">
-                <div class="p-2.5 bg-emerald-600/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-                    <i data-lucide="database" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-slate-100">ডেটা ব্যাকআপ ও রিস্টোর</h3>
-                    <p class="text-xs text-slate-400">গিটহাব পেজে ব্যবহারের জন্য ফাইল ব্যাকআপ রাখুন</p>
-                </div>
-            </div>
-
-            <div class="space-y-4 text-sm text-slate-300">
-                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60">
-                    <h4 class="font-semibold text-emerald-400 flex items-center gap-1.5 mb-1">
-                        <i data-lucide="download" class="w-4 h-4"></i> ব্যাকআপ নামিয়ে নিন (Export)
-                    </h4>
-                    <p class="text-xs text-slate-400 mb-3">আপনার সকল এনক্রিপ্ট করা তথ্য সুরক্ষিত JSON ফাইল হিসাবে ডাউনলোড করুন।</p>
-                    <button id="exportDataBtn" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-600">
-                        <i data-lucide="file-down" class="w-4 h-4"></i> ডাউনলোড করুন (JSON)
-                    </button>
-                </div>
-
-                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60">
-                    <h4 class="font-semibold text-indigo-400 flex items-center gap-1.5 mb-1">
-                        <i data-lucide="upload" class="w-4 h-4"></i> রিস্টোর করুন (Import)
-                    </h4>
-                    <p class="text-xs text-slate-400 mb-3">পূর্বে সেভ করা JSON ফাইল আপলোড করে অ্যাকাউন্ট রিস্টোর করুন।</p>
-                    <input type="file" id="importFileInput" accept=".json" class="hidden">
-                    <button id="triggerImportBtn" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2">
-                        <i data-lucide="file-up" class="w-4 h-4"></i> ফাইল নির্বাচন করে রিস্টোর করুন
-                    </button>
-                </div>
+    <!-- Security Check Modal -->
+    <div id="pinCheckModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div id="pinBox" class="bg-slate-800 rounded-2xl p-6 w-full max-w-xs border border-slate-700 text-center">
+            <i data-lucide="lock" class="w-10 h-10 text-red-500 mx-auto mb-2"></i>
+            <h3 class="text-base font-bold mb-1">গোপন সিকিউরিটি কোড দিন</h3>
+            <p class="text-xs text-slate-400 mb-4">পাসওয়ার্ডটি দেখতে পিন লিখুন</p>
+            <input type="password" id="checkPinInput" class="w-full text-center bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-lg tracking-widest focus:outline-none focus:border-red-500 mb-4">
+            <div class="flex gap-2">
+                <button onclick="closeModal('pinCheckModal')" class="w-1/2 py-2 bg-slate-700 rounded-lg text-sm">বাতিল</button>
+                <button onclick="verifyPinAndShow()" class="w-1/2 py-2 bg-red-600 rounded-lg text-sm font-medium">কনফার্ম</button>
             </div>
         </div>
     </div>
 
-    <div id="masterPinModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-            <button id="closeMasterPinModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="text-center mb-5">
-                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-500/30">
-                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
-                </div>
-                <h3 id="masterPinTitle" class="text-lg font-bold text-slate-100">মাস্টার পিন সেটিং</h3>
-                <p class="text-xs text-slate-400 mt-1">পাসওয়ার্ড সুরক্ষিত রাখার জন্য ৪-৮ ডিজিটের পিন সেট করুন</p>
+    <!-- Change PIN Modal -->
+    <div id="changePinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-xs border border-slate-700">
+            <h3 class="text-base font-bold mb-4 text-center">পিন পরিবর্তন করুন</h3>
+            <div class="space-y-3">
+                <input type="password" id="oldPin" placeholder="পুরাতন পিন" class="w-full text-center bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                <input type="password" id="newPin" placeholder="নতুন পিন" class="w-full text-center bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
             </div>
-
-            <form id="masterPinForm" onsubmit="return false;" class="space-y-4">
-                <div id="oldPinContainer" class="hidden">
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">পুরোনো পিন</label>
-                    <input type="password" id="oldPinInput" maxlength="8" placeholder="••••" 
-                        class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-center text-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">নতুন সিকিউরিটি পিন *</label>
-                    <input type="password" id="newPinInput" required maxlength="8" placeholder="••••" 
-                        class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-center text-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">নতুন পিন পুনরায় লিখুন *</label>
-                    <input type="password" id="confirmPinInput" required maxlength="8" placeholder="••••" 
-                        class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-center text-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <button type="submit" id="savePinBtn" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl text-sm shadow-lg shadow-amber-600/30">
-                    পিন সেভ করুন
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div id="githubModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button id="closeGithubModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="flex items-center gap-3 mb-5 border-b border-slate-800 pb-4">
-                <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
-                    <i data-lucide="github" class="w-7 h-7"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-slate-100">গিটহাব পেজে ফ্রিতে লাইভ করার নির্দেশিকা</h3>
-                    <p class="text-xs text-slate-400">খুব সহজেই ১ মিনিটেই আপনার নিজের গিটহাব অ্যাকাউন্টে এই সাইটটি সেটআপ করুন</p>
-                </div>
-            </div>
-
-            <div class="space-y-5 text-sm text-slate-300 leading-relaxed">
-                <!-- Step 1 -->
-                <div class="flex gap-4 items-start">
-                    <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 font-bold flex items-center justify-center text-xs flex-shrink-0">১</div>
-                    <div class="space-y-1">
-                        <h4 class="font-semibold text-slate-100">গিটহাবে নতুন Repository খুলুন</h4>
-                        <p class="text-xs text-slate-400">আপনার GitHub অ্যাকাউন্টে যান এবং <span class="text-indigo-400 font-mono">New Repository</span> তে ক্লিক করুন। Repository Name দিন যেমন: <code class="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">gmail-vault</code>। Public সিলেক্ট রাখুন।</p>
-                    </div>
-                </div>
-
-                <!-- Step 2 -->
-                <div class="flex gap-4 items-start">
-                    <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 font-bold flex items-center justify-center text-xs flex-shrink-0">২</div>
-                    <div class="space-y-1">
-                        <h4 class="font-semibold text-slate-100">কোড ফাইলটি ডাউনলোড করুন</h4>
-                        <p class="text-xs text-slate-400">এই পেজের সম্পূর্ণ HTML/JS কোড কপি করে আপনার পিসিতে <code class="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">index.html</code> নামে সেভ করুন।</p>
-                    </div>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="flex gap-4 items-start">
-                    <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 font-bold flex items-center justify-center text-xs flex-shrink-0">৩</div>
-                    <div class="space-y-1">
-                        <h4 class="font-semibold text-slate-100">ফাইল আপলোড করুন (Upload files)</h4>
-                        <p class="text-xs text-slate-400">গিটহাব রিপোজিটরির ভেতর <span class="text-indigo-400 font-mono">uploading an existing file</span> লিংকে ক্লিক করে আপনার <code class="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">index.html</code> ফাইলটি আপলোড করে <span class="text-emerald-400 font-semibold">Commit changes</span> চাপুন।</p>
-                    </div>
-                </div>
-
-                <!-- Step 4 -->
-                <div class="flex gap-4 items-start">
-                    <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 font-bold flex items-center justify-center text-xs flex-shrink-0">৪</div>
-                    <div class="space-y-1">
-                        <h4 class="font-semibold text-slate-100">GitHub Pages অন করুন</h4>
-                        <p class="text-xs text-slate-400">রিপোজিটরির <span class="text-indigo-400 font-mono">Settings</span> -> <span class="text-indigo-400 font-mono">Pages</span> সেকশনে যান। Build and deployment এ Branch হিসেবে <code class="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">main</code> সিলেক্ট করুন এবং <span class="text-emerald-400 font-semibold">Save</span> করুন।</p>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5">
-                    <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5"></i>
-                    <div>
-                        <strong>অভিনন্দন!</strong> ৩০ সেকেন্ডের মধ্যে আপনার ওয়েবসাইটটি সরাসরি ব্রাউজারে লাইভ হয়ে যাবে। ঠিকানা হবে: <br>
-                        <code class="text-amber-300 font-mono">https://yourusername.github.io/gmail-vault/</code>
-                    </div>
-                </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeModal('changePinModal')" class="w-1/2 py-2 bg-slate-700 rounded-lg text-sm">বাতিল</button>
+                <button onclick="updatePin()" class="w-1/2 py-2 bg-red-600 rounded-lg text-sm font-medium">সেভ</button>
             </div>
         </div>
     </div>
-
-    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500 mt-auto">
-        <p>জিমেইল ভল্ট • ১০০% ক্লায়েন্ট-সাইড এনক্রিপ্টেড ও সিকিউর। আপনার ডেটা শুধুমাত্র আপনার ব্রাউজারেই সংরক্ষিত থাকে।</p>
-    </footer>
 
     <script>
-        // State Management
-        const DEFAULT_PIN = "1234";
-        let masterPin = localStorage.getItem('gmail_vault_master_pin') || DEFAULT_PIN;
-        let accounts = JSON.parse(localStorage.getItem('gmail_vault_accounts') || '[]');
-        let activeRevealTargetId = null;
+        let accounts = JSON.parse(localStorage.getItem('gmail_vault_data')) || [];
+        let masterPin = localStorage.getItem('gmail_vault_pin') || '1234';
+        let activeIndex = null;
 
-        // Initialize Lucide Icons
-        lucide.createIcons();
+        function init() {
+            lucide.createIcons();
+            renderVault();
+        }
 
-        // Standard Simple Dynamic Encryption Utility (Base64 + XOR with Master PIN)
-        function encrypt(text, pin) {
+        function simpleXOR(text, key) {
+            let res = '';
+            for (let i = 0; i < text.length; i++) {
+                res += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return res;
+        }
+
+        function encryptData(text, key) {
             try {
-                let result = '';
-                for (let i = 0; i < text.length; i++) {
-                    result += String.fromCharCode(text.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
-                }
-                return btoa(result);
+                return btoa(encodeURIComponent(simpleXOR(text, key)));
             } catch (e) {
                 return text;
             }
         }
 
-        function decrypt(cipher, pin) {
+        function decryptData(cipher, key) {
             try {
-                let text = atob(cipher);
-                let result = '';
-                for (let i = 0; i < text.length; i++) {
-                    result += String.fromCharCode(text.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
-                }
-                return result;
+                return simpleXOR(decodeURIComponent(atob(cipher)), key);
             } catch (e) {
-                return 'ERROR_DECRYPT';
+                return null;
             }
         }
 
-        // DOM Elements
-        const accountsGrid = document.getElementById('accountsGrid');
-        const emptyState = document.getElementById('emptyState');
-        const searchInput = document.getElementById('searchInput');
+        function renderVault() {
+            const list = document.getElementById('vaultList');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            list.innerHTML = '';
 
-        // Initial setup on Load
-        window.addEventListener('DOMContentLoaded', () => {
-            // Check if default pin exists
-            if (!localStorage.getItem('gmail_vault_master_pin')) {
-                localStorage.setItem('gmail_vault_master_pin', DEFAULT_PIN);
-                showToast("ডিফল্ট সিকিউরিটি পিন: 1234 (পরিবর্তন করে নিন)", "info");
-            }
-            renderAccounts();
-        });
-
-        // Toast Helper
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            const bgColor = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-indigo-600';
-            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'alert-triangle' : 'info';
-            
-            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold animate-bounce`;
-            toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i> ${message}`;
-            
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
-        }
-
-        // Render Accounts Cards
-        function renderAccounts(filterQuery = '') {
-            accountsGrid.innerHTML = '';
-            
-            const filtered = accounts.filter(acc => 
-                acc.email.toLowerCase().includes(filterQuery.toLowerCase()) || 
-                (acc.note && acc.note.toLowerCase().includes(filterQuery.toLowerCase()))
-            );
+            const filtered = accounts.filter(acc => acc.email.toLowerCase().includes(search));
 
             if (filtered.length === 0) {
-                emptyState.classList.remove('hidden');
-                accountsGrid.classList.add('hidden');
+                list.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 text-sm">কোনো জিমেইল অ্যাকাউন্ট পাওয়া যায়নি</div>`;
                 return;
             }
 
-            emptyState.classList.add('hidden');
-            accountsGrid.classList.remove('hidden');
-
-            filtered.forEach(acc => {
+            filtered.forEach((acc) => {
+                const originalIndex = accounts.indexOf(acc);
                 const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg hover:border-slate-700 transition relative flex flex-col justify-between";
-                
+                card.className = 'bg-slate-800 border border-slate-700/60 rounded-xl p-4 flex flex-col justify-between';
                 card.innerHTML = `
                     <div>
-                        <div class="flex items-start justify-between gap-2 mb-3">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 font-bold text-sm">
-                                    ${acc.email.charAt(0).toUpperCase()}
-                                </div>
-                                <div class="overflow-hidden">
-                                    <h4 class="font-bold text-slate-100 text-sm truncate" title="${acc.email}">${acc.email}</h4>
-                                    <p class="text-[11px] text-slate-400">${acc.note || 'কোনো বিবরণ নেই'}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="editAccount('${acc.id}')" class="p-1.5 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-800 transition" title="এডিট">
-                                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="deleteAccount('${acc.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition" title="মুছে ফেলুন">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs px-2 py-0.5 bg-slate-700 text-slate-300 rounded">${acc.note || 'জিমেইল'}</span>
+                            <div class="flex gap-1 text-slate-400">
+                                <button onclick="editAccount(${originalIndex})" class="p-1 hover:text-white"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button onclick="deleteAccount(${originalIndex})" class="p-1 hover:text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                             </div>
                         </div>
-
-                        <!-- Password Field Container -->
-                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 mb-3 flex items-center justify-between">
-                            <div class="overflow-hidden">
-                                <span class="text-xs text-slate-500 block mb-0.5">পাসওয়ার্ড:</span>
-                                <span id="passText_${acc.id}" class="font-mono text-sm tracking-widest text-slate-400">••••••••••••</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button id="revealBtn_${acc.id}" onclick="triggerReveal('${acc.id}')" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-500/30 transition flex items-center gap-1">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                    দেখুন
-                                </button>
-                                <button id="copyBtn_${acc.id}" onclick="copyPassword('${acc.id}')" class="hidden p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs transition" title="কপি করুন">
-                                    <i data-lucide="copy" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </div>
+                        <p class="font-medium text-slate-100 mt-2 text-sm break-all">${acc.email}</p>
                     </div>
-
-                    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/60">
-                        <span>কপি জিমেইল:</span>
-                        <button onclick="copyToClipboard('${acc.email}', 'জিমেইল ঠিকানা কপি হয়েছে!')" class="text-indigo-400 hover:underline flex items-center gap-1 font-mono">
-                            ${acc.email.length > 20 ? acc.email.substring(0, 18) + '...' : acc.email}
-                            <i data-lucide="copy" class="w-3 h-3"></i>
+                    <div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center">
+                        <div id="pass-field-${originalIndex}" class="text-xs text-slate-500 font-mono">••••••••••••</div>
+                        <button onclick="requestPass(${originalIndex})" class="text-xs px-3 py-1.5 bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white transition rounded-md flex items-center gap-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> পাসওয়ার্ড
                         </button>
                     </div>
                 `;
-                accountsGrid.appendChild(card);
+                list.appendChild(card);
             });
-
             lucide.createIcons();
         }
 
-        // Search Input Event
-        searchInput.addEventListener('input', (e) => {
-            renderAccounts(e.target.value);
-        });
+        function openAddModal() {
+            document.getElementById('modalTitle').innerText = 'নতুন জিমেইল যোগ করুন';
+            document.getElementById('editIndex').value = '';
+            document.getElementById('emailInput').value = '';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('noteInput').value = '';
+            document.getElementById('accountModal').classList.remove('hidden');
+        }
 
-        // Trigger Reveal Logic
-        function triggerReveal(accId) {
-            const acc = accounts.find(a => a.id === accId);
-            if (!acc) return;
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
 
-            // If already decrypted & visible, toggle back
-            const passSpan = document.getElementById(`passText_${accId}`);
-            if (passSpan.getAttribute('data-revealed') === 'true') {
-                passSpan.textContent = '••••••••••••';
-                passSpan.removeAttribute('data-revealed');
-                passSpan.classList.add('text-slate-400', 'tracking-widest');
-                passSpan.classList.remove('text-emerald-400', 'font-semibold');
-                document.getElementById(`revealBtn_${accId}`).innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5"></i> দেখুন`;
-                document.getElementById(`copyBtn_${accId}`).classList.add('hidden');
-                lucide.createIcons();
-                return;
+        function saveAccount(e) {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            const rawPass = document.getElementById('passwordInput').value;
+            const note = document.getElementById('noteInput').value;
+            const index = document.getElementById('editIndex').value;
+
+            const encryptedPass = encryptData(rawPass, masterPin);
+
+            if (index === '') {
+                accounts.push({ email, pass: encryptedPass, note });
+            } else {
+                accounts[index] = { email, pass: encryptedPass, note };
             }
 
-            // Otherwise prompt Master PIN modal
-            activeRevealTargetId = accId;
-            openPinModal();
+            localStorage.setItem('gmail_vault_data', JSON.stringify(accounts));
+            closeModal('accountModal');
+            renderVault();
         }
 
-        // Reveal Password Function upon successful PIN
-        function revealActualPassword(accId) {
-            const acc = accounts.find(a => a.id === accId);
-            if (!acc) return;
-
-            const decrypted = decrypt(acc.encryptedPassword, masterPin);
-            const passSpan = document.getElementById(`passText_${accId}`);
-            
-            passSpan.textContent = decrypted;
-            passSpan.setAttribute('data-revealed', 'true');
-            passSpan.classList.remove('text-slate-400', 'tracking-widest');
-            passSpan.classList.add('text-emerald-400', 'font-semibold');
-
-            const revealBtn = document.getElementById(`revealBtn_${accId}`);
-            revealBtn.innerHTML = `<i data-lucide="eye-off" class="w-3.5 h-3.5"></i> লুকান`;
-            
-            const copyBtn = document.getElementById(`copyBtn_${accId}`);
-            copyBtn.classList.remove('hidden');
-
-            lucide.createIcons();
-            showToast("পাসওয়ার্ড আনলক হয়েছে!", "success");
+        function requestPass(index) {
+            activeIndex = index;
+            document.getElementById('checkPinInput').value = '';
+            document.getElementById('pinCheckModal').classList.remove('hidden');
+            document.getElementById('checkPinInput').focus();
         }
 
-        // Copy Password Helper
-        function copyPassword(accId) {
-            const acc = accounts.find(a => a.id === accId);
-            if (!acc) return;
+        function verifyPinAndShow() {
+            const pin = document.getElementById('checkPinInput').value;
+            const box = document.getElementById('pinBox');
 
-            const decrypted = decrypt(acc.encryptedPassword, masterPin);
-            copyToClipboard(decrypted, "পাসওয়ার্ড কপি করা হয়েছে!");
+            if (pin === masterPin) {
+                const dec = decryptData(accounts[activeIndex].pass, masterPin);
+                const passContainer = document.getElementById(`pass-field-${activeIndex}`);
+                if (dec !== null) {
+                    passContainer.innerHTML = `<span class="text-green-400 font-bold select-all">${dec}</span>`;
+                } else {
+                    passContainer.innerHTML = `<span class="text-red-400">ডিক্রিপ্ট করা যায়নি</span>`;
+                }
+                closeModal('pinCheckModal');
+            } else {
+                box.classList.add('shake');
+                setTimeout(() => box.classList.remove('shake'), 500);
+            }
         }
 
-        // Copy Clipboard Fallback
-        function copyToClipboard(text, successMsg) {
-            const tempInput = document.createElement("input");
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            showToast(successMsg, "info");
+        function editAccount(index) {
+            document.getElementById('modalTitle').innerText = 'তথ্য এডিট করুন';
+            document.getElementById('editIndex').value = index;
+            document.getElementById('emailInput').value = accounts[index].email;
+            document.getElementById('passwordInput').value = decryptData(accounts[index].pass, masterPin) || '';
+            document.getElementById('noteInput').value = accounts[index].note || '';
+            document.getElementById('accountModal').classList.remove('hidden');
         }
 
-        // PIN Verification Modal Logic
-        const pinModal = document.getElementById('pinModal');
-        const pinModalBox = document.getElementById('pinModalBox');
-        const pinInput = document.getElementById('pinInput');
-        const pinError = document.getElementById('pinError');
+        function deleteAccount(index) {
+            if (confirm('আপনি কি নিশ্চিত যে এই জিমেইলটি মুছে ফেলতে চান?')) {
+                accounts.splice(index, 1);
+                localStorage.setItem('gmail_vault_data', JSON.stringify(accounts));
+                renderVault();
+            }
+        }
 
         function openPinModal() {
-            pinInput.value = '';
-            pinError.classList.add('hidden');
-            pinModal.classList.remove('hidden');
-            setTimeout(() => pinInput.focus(), 100);
+            document.getElementById('oldPin').value = '';
+            document.getElementById('newPin').value = '';
+            document.getElementById('changePinModal').classList.remove('hidden');
         }
 
-        function closePinModalFunc() {
-            pinModal.classList.add('hidden');
-            activeRevealTargetId = null;
-        }
+        function updatePin() {
+            const oldP = document.getElementById('oldPin').value;
+            const newP = document.getElementById('newPin').value;
 
-        document.getElementById('closePinModal').addEventListener('click', closePinModalFunc);
-        document.getElementById('cancelPinBtn').addEventListener('click', closePinModalFunc);
-
-        document.getElementById('pinForm').addEventListener('submit', () => {
-            const enteredPin = pinInput.value.trim();
-            if (enteredPin === masterPin) {
-                closePinModalFunc();
-                if (activeRevealTargetId) {
-                    revealActualPassword(activeRevealTargetId);
-                }
-            } else {
-                pinError.classList.remove('hidden');
-                pinModalBox.classList.remove('animate-shake');
-                void pinModalBox.offsetWidth; // Trigger reflow for shake restart
-                pinModalBox.classList.add('animate-shake');
-                pinInput.value = '';
-                pinInput.focus();
+            if (oldP !== masterPin) {
+                alert('পুরাতন পিন ভুল হয়েছে!');
+                return;
             }
-        });
-
-        // Add / Edit Account Logic
-        const accountModal = document.getElementById('accountModal');
-        const accountForm = document.getElementById('accountForm');
-        const addGmailBtn = document.getElementById('addGmailBtn');
-        const emptyAddBtn = document.getElementById('emptyAddBtn');
-
-        function openAccountModal(editMode = false) {
-            accountModal.classList.remove('hidden');
-            if (!editMode) {
-                document.getElementById('accountModalTitle').textContent = 'নতুন জিমেইল যোগ করুন';
-                document.getElementById('editAccountId').value = '';
-                accountForm.reset();
-            }
-        }
-
-        function closeAccountModalFunc() {
-            accountModal.classList.add('hidden');
-            accountForm.reset();
-        }
-
-        addGmailBtn.addEventListener('click', () => openAccountModal(false));
-        emptyAddBtn.addEventListener('click', () => openAccountModal(false));
-        document.getElementById('closeAccountModal').addEventListener('click', closeAccountModalFunc);
-        document.getElementById('cancelAccountBtn').addEventListener('click', closeAccountModalFunc);
-
-        // Toggle Password visibility inside Modal
-        document.getElementById('toggleModalPass').addEventListener('click', () => {
-            const passInput = document.getElementById('gmailPasswordInput');
-            const icon = document.getElementById('toggleModalPass');
-            if (passInput.type === 'password') {
-                passInput.type = 'text';
-                icon.innerHTML = `<i data-lucide="eye-off" class="w-4 h-4"></i>`;
-            } else {
-                passInput.type = 'password';
-                icon.innerHTML = `<i data-lucide="eye" class="w-4 h-4"></i>`;
-            }
-            lucide.createIcons();
-        });
-
-        // Save / Update Account
-        accountForm.addEventListener('submit', () => {
-            const id = document.getElementById('editAccountId').value || Date.now().toString();
-            const email = document.getElementById('gmailAddressInput').value.trim();
-            const password = document.getElementById('gmailPasswordInput').value.trim();
-            const note = document.getElementById('gmailNoteInput').value.trim();
-
-            if (!email || !password) {
-                showToast("ইমেইল ও পাসওয়ার্ড দেওয়া আবশ্যক!", "error");
+            if (newP.length < 4) {
+                alert('নতুন পিন অন্তত ৪ ডিজিটের হতে হবে');
                 return;
             }
 
-            const encryptedPassword = encrypt(password, masterPin);
-            const existingIndex = accounts.findIndex(a => a.id === id);
-
-            if (existingIndex > -1) {
-                accounts[existingIndex] = { id, email, encryptedPassword, note, updatedAt: Date.now() };
-                showToast("অ্যাকাউন্ট সফলভাবে আপডেট করা হয়েছে!");
-            } else {
-                accounts.push({ id, email, encryptedPassword, note, createdAt: Date.now() });
-                showToast("নতুন জিমেইল যোগ করা হয়েছে!");
-            }
-
-            localStorage.setItem('gmail_vault_accounts', JSON.stringify(accounts));
-            closeAccountModalFunc();
-            renderAccounts();
-        });
-
-        // Edit Account
-        window.editAccount = function(accId) {
-            const acc = accounts.find(a => a.id === accId);
-            if (!acc) return;
-
-            document.getElementById('editAccountId').value = acc.id;
-            document.getElementById('gmailAddressInput').value = acc.email;
-            document.getElementById('gmailPasswordInput').value = decrypt(acc.encryptedPassword, masterPin);
-            document.getElementById('gmailNoteInput').value = acc.note || '';
-
-            document.getElementById('accountModalTitle').textContent = 'অ্যাকাউন্ট এডিট করুন';
-            openAccountModal(true);
-        };
-
-        // Delete Account
-        window.deleteAccount = function(accId) {
-            if (confirm("আপনি কি নিশ্চিত যে এই জিমেইল বিবরণী মুছে ফেলতে চান?")) {
-                accounts = accounts.filter(a => a.id !== accId);
-                localStorage.setItem('gmail_vault_accounts', JSON.stringify(accounts));
-                renderAccounts();
-                showToast("অ্যাকাউন্ট মুছে ফেলা হয়েছে!", "error");
-            }
-        };
-
-        // Master PIN Modification Logic
-        const masterPinModal = document.getElementById('masterPinModal');
-        const masterPinForm = document.getElementById('masterPinForm');
-
-        document.getElementById('changePinBtn').addEventListener('click', () => {
-            document.getElementById('oldPinContainer').classList.remove('hidden');
-            document.getElementById('oldPinInput').required = true;
-            masterPinForm.reset();
-            masterPinModal.classList.remove('hidden');
-        });
-
-        document.getElementById('closeMasterPinModal').addEventListener('click', () => {
-            masterPinModal.classList.add('hidden');
-        });
-
-        masterPinForm.addEventListener('submit', () => {
-            const oldPin = document.getElementById('oldPinInput').value.trim();
-            const newPin = document.getElementById('newPinInput').value.trim();
-            const confirmPin = document.getElementById('confirmPinInput').value.trim();
-
-            if (oldPin !== masterPin) {
-                showToast("পুরোনো পিনটি ভুল হয়েছে!", "error");
-                return;
-            }
-
-            if (newPin.length < 4) {
-                showToast("পিন কমপক্ষে ৪ ডিজিটের হতে হবে!", "error");
-                return;
-            }
-
-            if (newPin !== confirmPin) {
-                showToast("নতুন দুই পিন মিলছে না!", "error");
-                return;
-            }
-
-            // Re-encrypt all stored accounts with the NEW pin
             accounts = accounts.map(acc => {
-                const rawPassword = decrypt(acc.encryptedPassword, masterPin);
-                return {
-                    ...acc,
-                    encryptedPassword: encrypt(rawPassword, newPin)
-                };
+                const plainPass = decryptData(acc.pass, masterPin);
+                return { ...acc, pass: encryptData(plainPass || '', newP) };
             });
 
-            masterPin = newPin;
-            localStorage.setItem('gmail_vault_master_pin', masterPin);
-            localStorage.setItem('gmail_vault_accounts', JSON.stringify(accounts));
+            masterPin = newP;
+            localStorage.setItem('gmail_vault_pin', masterPin);
+            localStorage.setItem('gmail_vault_data', JSON.stringify(accounts));
+            closeModal('changePinModal');
+            alert('পিন সফলভাবে পরিবর্তন হয়েছে!');
+            renderVault();
+        }
 
-            masterPinModal.classList.add('hidden');
-            renderAccounts();
-            showToast("মাস্টার পিন পরিবর্তন করা হয়েছে!", "success");
-        });
-
-        // Backup / Export & Import
-        const backupModal = document.getElementById('backupModal');
-        document.getElementById('exportImportBtn').addEventListener('click', () => {
-            backupModal.classList.remove('hidden');
-        });
-        document.getElementById('closeBackupModal').addEventListener('click', () => {
-            backupModal.classList.add('hidden');
-        });
-
-        // Export JSON
-        document.getElementById('exportDataBtn').addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `gmail_vault_backup_${new Date().toISOString().slice(0,10)}.json`);
+            downloadAnchor.setAttribute("download", "gmail_vault_backup.json");
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast("ব্যাকআপ ফাইল ডাউনলোড হয়েছে!");
-        });
+        }
 
-        // Import JSON
-        const importFileInput = document.getElementById('importFileInput');
-        document.getElementById('triggerImportBtn').addEventListener('click', () => {
-            importFileInput.click();
-        });
-
-        importFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
+        function importData(e) {
+            const fileReader = new FileReader();
+            fileReader.onload = function (event) {
                 try {
-                    const importedAccounts = JSON.parse(evt.target.result);
-                    if (Array.isArray(importedAccounts)) {
-                        accounts = importedAccounts;
-                        localStorage.setItem('gmail_vault_accounts', JSON.stringify(accounts));
-                        renderAccounts();
-                        backupModal.classList.add('hidden');
-                        showToast("সফলভাবে রিস্টোর সম্পন্ন হয়েছে!");
-                    } else {
-                        showToast("অকার্যকর ফাইল ফরম্যাট!", "error");
+                    const imported = JSON.parse(event.target.result);
+                    if (Array.isArray(imported)) {
+                        accounts = imported;
+                        localStorage.setItem('gmail_vault_data', JSON.stringify(accounts));
+                        renderVault();
+                        alert('ডাটা সফলভাবে ইমপোর্ট হয়েছে!');
                     }
                 } catch (err) {
-                    showToast("ফাইল পড়তে ব্যর্থ হয়েছে!", "error");
+                    alert('ভুল ফাইল ফরম্যাট!');
                 }
             };
-            reader.readAsText(file);
-        });
+            fileReader.readAsText(e.target.files[0]);
+        }
 
-        // GitHub Guide Modal Logic
-        const githubModal = document.getElementById('githubModal');
-        document.getElementById('openGithubGuideBtn').addEventListener('click', () => {
-            githubModal.classList.remove('hidden');
-        });
-        document.getElementById('closeGithubModal').addEventListener('click', () => {
-            githubModal.classList.add('hidden');
-        });
+        window.onload = init;
     </script>
 </body>
 </html>
